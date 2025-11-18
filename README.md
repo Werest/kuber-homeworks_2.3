@@ -233,6 +233,55 @@ openssl x509 -req -in developer.csr -CA {CA серт вашего кластер
   - `rolebinding-developer.yaml`
 - Команды генерации сертификатов
 - Скриншот проверки прав (`kubectl get pods --as=developer`)
+---
+```
+openssl genrsa -out developer.key 2048
+openssl req -new -key developer.key -out developer.csr -subj "/CN=developer"
+sudo openssl x509 -req -in developer.csr \
+  -CA /var/snap/microk8s/current/certs/ca.crt \
+  -CAkey /var/snap/microk8s/current/certs/ca.key \
+  -CAcreateserial -out developer.crt -days 365
+
+Certificate request self-signature ok
+subject=CN=developer
+```
+**role-pod-reader.yaml**
+```
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: default
+  name: pod-reader
+rules:
+- apiGroups: [""]
+  resources: ["pods", "pods/log"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["describe"]
+```
+**rolebinding-developer.yaml**
+```
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: read-pods
+  namespace: default
+subjects:
+- kind: User
+  name: developer
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: pod-reader
+  apiGroup: rbac.authorization.k8s.io
+```
+
+```
+sudo microk8s kubectl get clusterroles
+```
+
+<img width="1483" height="207" alt="image" src="https://github.com/user-attachments/assets/97b453a3-c8cb-4b6d-bd05-ecba99109678" />
 
 ---
 ## Шаблоны манифестов с учебными комментариями
